@@ -265,12 +265,19 @@
             // Start updating the screen
             startScreenUpdate();
             
-            // Set up event listeners
-            qualitySelector.addEventListener('change', function() {
+            // Set up event listeners for update rate
+            updateRateSelector.addEventListener('change', function() {
                 updateInterval = parseFloat(this.value) * 1000;
                 restartScreenUpdate();
             });
             
+            // Set up event listeners for image quality
+            imageQualitySelector.addEventListener('change', function() {
+                currentQuality = parseInt(this.value);
+                sendQualitySettings();
+            });
+            
+            // Full screen button
             fullscreenBtn.addEventListener('click', function() {
                 if (remoteScreen.requestFullscreen) {
                     remoteScreen.requestFullscreen();
@@ -281,8 +288,94 @@
                 }
             });
             
+            // Disconnect button
             disconnectBtn.addEventListener('click', function() {
                 window.location.href = '/';
+            });
+            
+            // Setup mouse control events
+            setupMouseControls();
+        }
+        
+        // Setup mouse control event listeners
+        function setupMouseControls() {
+            // Toggle control panel visibility
+            toggleControls.addEventListener('click', function() {
+                const panel = mouseControlPanel.querySelector('.mouse-controls');
+                if (panel.style.display === 'none') {
+                    panel.style.display = 'flex';
+                    this.textContent = 'إخفاء لوحة التحكم';
+                } else {
+                    panel.style.display = 'none';
+                    this.textContent = 'إظهار لوحة التحكم';
+                }
+            });
+            
+            // Mouse buttons
+            leftClickBtn.addEventListener('click', function() {
+                sendMouseControl('click', null, null, 'left');
+            });
+            
+            rightClickBtn.addEventListener('click', function() {
+                sendMouseControl('click', null, null, 'right');
+            });
+            
+            doubleClickBtn.addEventListener('click', function() {
+                sendMouseControl('click', null, null, 'double');
+            });
+            
+            scrollUpBtn.addEventListener('click', function() {
+                sendMouseControl('scroll', null, 100); // positive = scroll up
+            });
+            
+            scrollDownBtn.addEventListener('click', function() {
+                sendMouseControl('scroll', null, -100); // negative = scroll down
+            });
+            
+            // Toggle direct mouse control mode
+            toggleMouseModeBtn.addEventListener('click', function() {
+                mouseControlActive = !mouseControlActive;
+                if (mouseControlActive) {
+                    this.classList.add('active');
+                    this.textContent = 'إيقاف التحكم المباشر';
+                    remoteScreen.style.cursor = 'crosshair';
+                } else {
+                    this.classList.remove('active');
+                    this.textContent = 'تفعيل التحكم المباشر';
+                    remoteScreen.style.cursor = 'default';
+                }
+            });
+            
+            // Direct mouse control on the remote screen
+            remoteScreen.addEventListener('click', function(e) {
+                if (!mouseControlActive) return;
+                
+                // Calculate position relative to the remote screen
+                const rect = remoteScreen.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width * screenWidth;
+                const y = (e.clientY - rect.top) / rect.height * screenHeight;
+                
+                // First move the cursor, then click
+                sendMouseControl('move', x, y);
+                setTimeout(() => {
+                    sendMouseControl('click', null, null, 'left');
+                }, 100);
+            });
+            
+            remoteScreen.addEventListener('contextmenu', function(e) {
+                if (!mouseControlActive) return;
+                e.preventDefault(); // Prevent browser context menu
+                
+                // Calculate position relative to the remote screen
+                const rect = remoteScreen.getBoundingClientRect();
+                const x = (e.clientX - rect.left) / rect.width * screenWidth;
+                const y = (e.clientY - rect.top) / rect.height * screenHeight;
+                
+                // First move the cursor, then right click
+                sendMouseControl('move', x, y);
+                setTimeout(() => {
+                    sendMouseControl('click', null, null, 'right');
+                }, 100);
             });
         }
         
@@ -319,6 +412,61 @@
             lastFpsUpdateTime = now;
         }
         
+        // Send mouse control command to the server
+        function sendMouseControl(action, x, y, button) {
+            if (!isConnected) return;
+            
+            fetch(`/api/send-mouse-control/${deviceId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    action: action,
+                    x: x,
+                    y: y,
+                    button: button
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to send mouse control');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Mouse control sent:', data);
+            })
+            .catch(error => {
+                console.error('Error sending mouse control:', error);
+            });
+        }
+        
+        // Send quality settings to the server
+        function sendQualitySettings() {
+            fetch(`/api/set-quality/${deviceId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    quality: currentQuality
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to update quality settings');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Quality settings updated:', data);
+            })
+            .catch(error => {
+                console.error('Error updating quality settings:', error);
+            });
+        }
+        
         // Update the screen image
         function updateScreen() {
             fetch(`/api/get-screen/${deviceId}`)
@@ -337,6 +485,12 @@
                         // Show the image
                         remoteScreen.src = 'data:image/jpeg;base64,' + data.screen_data.image;
                         loadingMessage.style.display = 'none';
+                        
+                        // Store screen dimensions for mouse control scaling
+                        screenWidth = data.screen_data.screen_width || data.screen_data.width;
+                        screenHeight = data.screen_data.screen_height || data.screen_data.height;
+                        remoteScreenWidth = remoteScreen.clientWidth;
+                        remoteScreenHeight = remoteScreen.clientHeight;
                         
                         // Update connection status
                         if (!isConnected) {

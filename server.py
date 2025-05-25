@@ -281,6 +281,30 @@ def get_mouse_control_result(device_id):
     
     return jsonify(result)
 
+@app.route('/api/set-quality/<device_id>', methods=['POST'])
+def set_quality(device_id):
+    # Endpoint for browser to set image quality
+    data = request.get_json()
+    if not data or 'quality' not in data:
+        return jsonify({"error": "Invalid quality data"}), 400
+    
+    quality = data['quality']
+    
+    # Store as a command for the receiver to pick up
+    command_id = str(time.time())
+    command_store[command_id] = {
+        "command": f"!screen quality={quality}",
+        "status": "pending",
+        "output": None,
+        "timestamp": time.time()
+    }
+    
+    return jsonify({
+        "status": "success", 
+        "message": f"Quality set to {quality}",
+        "command_id": command_id
+    })
+
 if __name__ == "__main__":
     # Create necessary directories if they don't exist
     os.makedirs('templates', exist_ok=True)
