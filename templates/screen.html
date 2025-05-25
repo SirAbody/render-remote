@@ -115,6 +115,51 @@
             border-radius: 5px;
             border: 1px solid #ddd;
         }
+        .control-group {
+            margin: 5px 10px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            display: inline-block;
+        }
+        .mouse-controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+        .control-panel {
+            background-color: white;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .mouse-btn {
+            margin: 5px;
+            padding: 8px 15px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .mouse-btn:hover {
+            background-color: #e9ecef;
+        }
+        .mouse-btn.active {
+            background-color: #e2f3ff;
+            border-color: #3498db;
+        }
+        .toggle-controls {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #3498db;
+            cursor: pointer;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -156,6 +201,19 @@
             <img id="remote-screen" src="" alt="الشاشة البعيدة">
         </div>
         
+        <div class="control-panel" id="mouse-control-panel">
+            <h3>التحكم بالماوس</h3>
+            <div class="mouse-controls">
+                <button id="left-click-btn" class="mouse-btn">نقرة يسار</button>
+                <button id="right-click-btn" class="mouse-btn">نقرة يمين</button>
+                <button id="double-click-btn" class="mouse-btn">نقرة مزدوجة</button>
+                <button id="scroll-up-btn" class="mouse-btn">تمرير لأعلى</button>
+                <button id="scroll-down-btn" class="mouse-btn">تمرير لأسفل</button>
+                <button id="toggle-mouse-mode" class="mouse-btn">تفعيل التحكم المباشر</button>
+            </div>
+            <div class="toggle-controls" id="toggle-controls">إخفاء لوحة التحكم</div>
+        </div>
+        
         <div class="controls">
             <a href="/" class="btn">العودة للصفحة الرئيسية</a>
             <button id="fullscreen-btn" class="btn">عرض ملء الشاشة</button>
@@ -176,6 +234,12 @@
         let lastUpdateTime = 0;
         let frameCount = 0;
         let lastFpsUpdateTime = 0;
+        let mouseControlActive = false;
+        let screenWidth = 0;
+        let screenHeight = 0;
+        let remoteScreenWidth = 0;
+        let remoteScreenHeight = 0;
+        let currentQuality = 70; // default image quality
         
         // DOM elements
         const remoteScreen = document.getElementById('remote-screen');
@@ -183,9 +247,18 @@
         const connectionText = document.getElementById('connection-text');
         const loadingMessage = document.getElementById('loading-message');
         const fpsDisplay = document.getElementById('fps-display');
-        const qualitySelector = document.getElementById('quality-selector');
+        const updateRateSelector = document.getElementById('update-rate');
+        const imageQualitySelector = document.getElementById('image-quality');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         const disconnectBtn = document.getElementById('disconnect-btn');
+        const mouseControlPanel = document.getElementById('mouse-control-panel');
+        const toggleControls = document.getElementById('toggle-controls');
+        const leftClickBtn = document.getElementById('left-click-btn');
+        const rightClickBtn = document.getElementById('right-click-btn');
+        const doubleClickBtn = document.getElementById('double-click-btn');
+        const scrollUpBtn = document.getElementById('scroll-up-btn');
+        const scrollDownBtn = document.getElementById('scroll-down-btn');
+        const toggleMouseModeBtn = document.getElementById('toggle-mouse-mode');
         
         // Initialize the screen update
         function init() {
