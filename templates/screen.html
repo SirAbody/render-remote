@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشاهدة الشاشة البعيدة</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .status-bar {
+            background-color: white;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
+        }
+        .device-info {
+            text-align: right;
+        }
+        .connection-status {
+            display: flex;
+            align-items: center;
+        }
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 8px;
+            background-color: #e74c3c; /* red by default */
+        }
+        .connected {
+            background-color: #2ecc71; /* green when connected */
+        }
+        .screen-container {
+            background-color: white;
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            position: relative;
+            height: 70vh;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+        #remote-screen {
+            max-width: 100%;
+            max-height: 100%;
+            margin: 0 auto;
+            display: block;
+            object-fit: contain;
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn-danger {
+            background-color: #e74c3c;
+        }
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+        .footer {
+            margin-top: 20px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        #fps-display {
+            margin-left: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        #loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #666;
+        }
+        .quality-selector {
+            margin-left: 20px;
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>مشاهدة الشاشة البعيدة</h1>
+        
+        <div class="status-bar">
+            <div class="connection-status">
+                <span id="connection-text">جاري الاتصال...</span>
+                <div id="status-indicator" class="status-indicator"></div>
+                <div class="control-group">
+                    <label for="update-rate">سرعة التحديث:</label>
+                    <select id="update-rate" class="quality-selector">
+                        <option value="0.2">سرعة جدا (0.2 ثانية)</option>
+                        <option value="0.5">سرعة (0.5 ثانية)</option>
+                        <option value="1" selected>متوسط (1 ثانية)</option>
+                        <option value="2">بطيء (2 ثانية)</option>
+                        <option value="5">بطيء جدا (5 ثواني)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="image-quality">جودة الصورة:</label>
+                    <select id="image-quality" class="quality-selector">
+                        <option value="30">منخفضة (30%)</option>
+                        <option value="50">متوسطة (50%)</option>
+                        <option value="70" selected>عالية (70%)</option>
+                        <option value="90">عالية جدا (90%)</option>
+                    </select>
+                </div>
+                <span id="fps-display">0 صورة/ثانية</span>
+            </div>
+            <div class="device-info">
+                <strong>معرف الجهاز:</strong> <span id="device-id">{{ device_id }}</span>
+            </div>
+        </div>
+        
+        <div class="screen-container">
+            <div id="loading-message">جاري تحميل الشاشة...</div>
+            <img id="remote-screen" src="" alt="الشاشة البعيدة">
+        </div>
+        
+        <div class="controls">
+            <a href="/" class="btn">العودة للصفحة الرئيسية</a>
+            <button id="fullscreen-btn" class="btn">عرض ملء الشاشة</button>
+            <button id="disconnect-btn" class="btn btn-danger">قطع الاتصال</button>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 SirAbody. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+
+    <script>
+        // Screen sharing variables
+        const deviceId = '{{ device_id }}';
+        let updateInterval = 1000; // default to 1 second
+        let isConnected = false;
+        let updateTimer = null;
+        let lastUpdateTime = 0;
+        let frameCount = 0;
+        let lastFpsUpdateTime = 0;
+        
+        // DOM elements
+        const remoteScreen = document.getElementById('remote-screen');
+        const statusIndicator = document.getElementById('status-indicator');
+        const connectionText = document.getElementById('connection-text');
+        const loadingMessage = document.getElementById('loading-message');
+        const fpsDisplay = document.getElementById('fps-display');
+        const qualitySelector = document.getElementById('quality-selector');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        
+        // Initialize the screen update
+        function init() {
+            // Start updating the screen
+            startScreenUpdate();
+            
+            // Set up event listeners
+            qualitySelector.addEventListener('change', function() {
+                updateInterval = parseFloat(this.value) * 1000;
+                restartScreenUpdate();
+            });
+            
+            fullscreenBtn.addEventListener('click', function() {
+                if (remoteScreen.requestFullscreen) {
+                    remoteScreen.requestFullscreen();
+                } else if (remoteScreen.webkitRequestFullscreen) {
+                    remoteScreen.webkitRequestFullscreen();
+                } else if (remoteScreen.msRequestFullscreen) {
+                    remoteScreen.msRequestFullscreen();
+                }
+            });
+            
+            disconnectBtn.addEventListener('click', function() {
+                window.location.href = '/';
+            });
+        }
+        
+        // Start the screen update loop
+        function startScreenUpdate() {
+            updateScreen(); // Update immediately
+            
+            // Set up interval for future updates
+            updateTimer = setInterval(updateScreen, updateInterval);
+            
+            // Start FPS counter
+            lastFpsUpdateTime = Date.now();
+            setInterval(updateFPS, 1000); // Update FPS display every second
+        }
+        
+        // Restart the screen update with new interval
+        function restartScreenUpdate() {
+            if (updateTimer) {
+                clearInterval(updateTimer);
+            }
+            updateTimer = setInterval(updateScreen, updateInterval);
+        }
+        
+        // Update the FPS counter
+        function updateFPS() {
+            const now = Date.now();
+            const elapsed = (now - lastFpsUpdateTime) / 1000;
+            const fps = frameCount / elapsed;
+            
+            fpsDisplay.textContent = `${fps.toFixed(1)} صورة/ثانية`;
+            
+            // Reset for next second
+            frameCount = 0;
+            lastFpsUpdateTime = now;
+        }
+        
+        // Update the screen image
+        function updateScreen() {
+            fetch(`/api/get-screen/${deviceId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Device not found or screen sharing stopped');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.screen_data && data.screen_data.image) {
+                        // Get current time and calculate time since last update
+                        const now = Date.now();
+                        const timeSinceLastUpdate = (now - data.timestamp * 1000) / 1000;
+                        
+                        // Show the image
+                        remoteScreen.src = 'data:image/jpeg;base64,' + data.screen_data.image;
+                        loadingMessage.style.display = 'none';
+                        
+                        // Update connection status
+                        if (!isConnected) {
+                            isConnected = true;
+                            statusIndicator.classList.add('connected');
+                            connectionText.textContent = 'متصل';
+                        }
+                        
+                        // Update last update time
+                        lastUpdateTime = now;
+                        
+                        // Increment frame counter for FPS calculation
+                        frameCount++;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching screen:', error);
+                    isConnected = false;
+                    statusIndicator.classList.remove('connected');
+                    connectionText.textContent = 'غير متصل';
+                    loadingMessage.textContent = 'لا يمكن الاتصال بالجهاز البعيد. تأكد من أن مشاركة الشاشة نشطة.';
+                    loadingMessage.style.display = 'block';
+                });
+        }
+        
+        // Initialize when the page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

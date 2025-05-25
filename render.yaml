@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: sirabody-remote
+    env: python
+    region: singapore # You can change this to a region closer to you
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
+    plan: free # You can upgrade this if you need more resources
