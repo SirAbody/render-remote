@@ -15,7 +15,7 @@ import json
 import struct
 
 class AudioStreamer:
-    def __init__(self, server_url, device_id, chunk=1024, channels=1, rate=16000, p=None):
+    def __init__(self, server_url, device_id, chunk=4096, channels=1, rate=48000, p=None):
         self.server_url = server_url
         self.device_id = device_id
         self.chunk = chunk
@@ -252,8 +252,10 @@ class AudioStreamer:
                             # Decode audio from base64
                             audio_bytes = base64.b64decode(audio_data["audio_data"])
                             
-                            # Play audio
-                            self.speaker_stream.write(audio_bytes)
+                            # Only play audio locally if configured to do so
+                            # Comment out or remove the next line to prevent local playback
+                            # self.speaker_stream.write(audio_bytes)
+                            # Just keep receiving audio data for the web interface to use
                     
                     # Add a small delay to prevent flooding the server with requests
                     time.sleep(0.05)

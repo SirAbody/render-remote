@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Include our custom audio scripts -->
+    <script src="/static/js/web_audio.js"></script>
+    <script src="/static/js/browser_audio.js" data-device-id="{{ device_id }}"></script>
     <style>
         :root {
             --primary-color: #3550c6;
@@ -586,9 +589,17 @@
         </div>
     </div>
 
+    <!-- Incluir nuestro gestor de audio personalizado -->
+    <script src="/static/js/audio_handler.js"></script>
+    
+    <!-- Include our custom audio client -->
+    <script src="/static/js/audio_client.js"></script>
+    
     <script>
         // Screen sharing variables
         const deviceId = '{{ device_id }}';
+        // Initialize web audio handler
+        const webAudio = new WebAudio(deviceId);
         let updateInterval = 1000; // default to 1 second
         let isConnected = false;
         let updateTimer = null;

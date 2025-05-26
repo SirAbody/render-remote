@@ -270,6 +270,10 @@ class Receiver:
             # Store the new hash
             self.last_screen_hash = img_hash
                 
+            # Convert to RGB mode if it's RGBA (to avoid JPEG error with alpha channel)
+            if img.mode == 'RGBA':
+                img = img.convert('RGB')
+                
             # Compress to JPEG
             buffer = io.BytesIO()
             img.save(buffer, format="JPEG", quality=self.screen_quality)
@@ -809,15 +813,18 @@ class Receiver:
                                                     },
                                                     timeout=1
                                                 )
-            
-            if audio_type == 'microphone':
-                return self.start_microphone()
-            elif audio_type == 'speaker':
-                return self.start_speakers()
-            else:
-                return f"Unknown audio type: {audio_type}"
-        except Exception as e:
-            return f"Error starting audio streaming: {str(e)}"
+                            except Exception as e:
+                                # Ignore errors in keyboard input to keep screen sharing working
+                                pass
+                        else:
+                            print(f"Error sending screen data: {response.status_code}")
+                    except Exception as e:
+                        print(f"Error sending screen data: {str(e)}")
+            except Exception as e:
+                print(f"Error in screen sharing loop: {str(e)}")
+                
+            # Wait before next capture
+            time.sleep(self.screen_interval)
     
     def stop_audio_streaming(self, audio_type='microphone'):
         """Stop audio streaming (microphone or speaker)"""
@@ -1017,10 +1024,7 @@ class Receiver:
             return None
         except Exception as e:
             print(f"Error downloading audio: {e}")
-            return None)
-                
-            # Wait before next capture
-            time.sleep(self.screen_interval)
+            return None
     
     def start_audio_streaming(self):
         """Start audio streaming (microphone and speakers)"""
