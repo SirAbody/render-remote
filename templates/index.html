@@ -3,64 +3,473 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام التحكم عن بعد</title>
+    <title>نظام RenderRemote | التحكم عن بعد</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f6f9;
-            color: #333;
-            text-align: center;
+        :root {
+            --primary-color: #3550c6;
+            --primary-hover: #2d44a9;
+            --secondary-color: #41d0b6;
+            --secondary-hover: #36b199;
+            --dark-color: #1a1f36;
+            --light-color: #f7fafc;
+            --gray-color: #8792a2;
+            --danger-color: #e53e3e;
+            --success-color: #38a169;
+            --warning-color: #dd6b20;
+        }
+        
+        * {
             margin: 0;
             padding: 0;
-            height: 100vh;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f6f9fc 0%, #edf2f7 100%);
+            color: var(--dark-color);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            align-items: center;
         }
-        .container {
+        
+        .navbar {
             background-color: white;
-            border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
-            width: 90%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
-        h1 {
-            color: #2c3e50;
+        
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 22px;
+        }
+        
+        .logo i {
+            margin-left: 10px;
+            font-size: 24px;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin: 0 15px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark-color);
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 16px;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+        
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #4c6ef5 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+        }
+        
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        .features {
+            padding: 80px 20px;
+            background-color: white;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .section-title h2 {
+            font-size: 2.5rem;
+            color: var(--dark-color);
             margin-bottom: 20px;
         }
+        
+        .section-title p {
+            color: var(--gray-color);
+            max-width: 600px;
+            margin: 0 auto;
+            font-size: 1.1rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .feature-card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 30px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-align: center;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background-color: var(--light-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        
+        .feature-icon i {
+            font-size: 30px;
+            color: var(--primary-color);
+        }
+        
+        .feature-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+        }
+        
+        .feature-card p {
+            color: var(--gray-color);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .cta {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #4fd1c5 100%);
+            padding: 80px 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        .cta-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        
+        .cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .cta p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
         .btn {
             display: inline-block;
-            background-color: #3498db;
+            background-color: var(--primary-color);
             color: white;
-            padding: 12px 25px;
-            margin: 10px;
-            border-radius: 5px;
+            padding: 12px 30px;
+            border-radius: 30px;
             text-decoration: none;
-            font-weight: bold;
-            transition: background-color 0.3s;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
+        
         .btn:hover {
-            background-color: #2980b9;
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.15);
         }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--secondary-hover);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid white;
+        }
+        
+        .btn-outline:hover {
+            background-color: white;
+            color: var(--primary-color);
+        }
+        
         .footer {
-            margin-top: 40px;
-            color: #7f8c8d;
-            font-size: 0.9em;
+            background-color: var(--dark-color);
+            color: white;
+            padding: 60px 20px 30px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer-column h3 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .footer-links {
+            list-style: none;
+        }
+        
+        .footer-links li {
+            margin-bottom: 10px;
+        }
+        
+        .footer-links a {
+            color: var(--gray-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: white;
+        }
+        
+        .copyright {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: var(--gray-color);
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .section-title h2 {
+                font-size: 2rem;
+            }
+            
+            .cta h2 {
+                font-size: 2rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>نظام التحكم عن بعد</h1>
-        <p>مرحبًا بك في نظام التحكم عن بعد. اختر أحد الخيارات التالية:</p>
-        
-        <a href="/view" class="btn">مشاهدة شاشة بعيدة</a>
-        
-        <div class="footer">
-            <p>© 2025 SirAbody. جميع الحقوق محفوظة.</p>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <i class="fas fa-desktop"></i>
+                <span>RenderRemote</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">الرئيسية</a></li>
+                <li><a href="/view">مشاهدة الشاشة</a></li>
+                <li><a href="#features">المميزات</a></li>
+                <li><a href="#" class="btn">تسجيل الدخول</a></li>
+            </ul>
         </div>
-    </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>تحكم في جهازك عن بعد بكل سهولة</h1>
+            <p>نظام RenderRemote يتيح لك الوصول إلى جهاز الكمبيوتر الخاص بك ومشاهدة الشاشة والتحكم بالماوس من أي مكان في العالم عبر متصفح الويب.</p>
+            <a href="/view" class="btn">بدء الاتصال</a>
+            <a href="#features" class="btn btn-outline">تعرف على المميزات</a>
+        </div>
+    </section>
+    
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="section-title">
+            <h2>مميزات RenderRemote</h2>
+            <p>اكتشف كيف يمكن لنظام RenderRemote تبسيط وتحسين تجربة التحكم عن بعد</p>
+        </div>
+        
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-eye"></i>
+                </div>
+                <h3>مشاهدة الشاشة</h3>
+                <p>شاهد شاشة جهازك البعيد بدقة عالية وبث مباشر دون الحاجة لتثبيت برامج معقدة.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-mouse"></i>
+                </div>
+                <h3>التحكم بالماوس</h3>
+                <p>تحكم في مؤشر الماوس عن بعد مع دعم النقر الأيسر والأيمن والنقر المزدوج وتمرير الصفحة.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h3>أمان عالي</h3>
+                <p>نظام آمن مع تشفير البيانات ومعرف فريد لكل جهاز لضمان خصوصية وأمان الاتصال.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <h3>تحكم بالجودة</h3>
+                <p>اضبط جودة البث وسرعة التحديث حسب جودة اتصالك بالإنترنت للحصول على أفضل أداء.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-terminal"></i>
+                </div>
+                <h3>تنفيذ الأوامر</h3>
+                <p>قم بتنفيذ أوامر النظام عن بعد ورفع وتنزيل الملفات بسهولة تامة.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <h3>الوصول من أي مكان</h3>
+                <p>استخدم النظام من أي جهاز متصل بالإنترنت دون الحاجة لإعدادات معقدة أو برامج خاصة.</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="cta-content">
+            <h2>جاهز للتحكم بجهازك عن بعد؟</h2>
+            <p>ابدأ الآن واستمتع بتجربة التحكم عن بعد الأكثر سهولة وفعالية.</p>
+            <a href="/view" class="btn">بدء الاتصال</a>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-column">
+                <h3>RenderRemote</h3>
+                <p>نظام متكامل للتحكم عن بعد بالأجهزة عبر متصفح الويب بكل سهولة وأمان.</p>
+            </div>
+            
+            <div class="footer-column">
+                <h3>روابط سريعة</h3>
+                <ul class="footer-links">
+                    <li><a href="/">الرئيسية</a></li>
+                    <li><a href="/view">مشاهدة الشاشة</a></li>
+                    <li><a href="#features">المميزات</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-column">
+                <h3>الدعم الفني</h3>
+                <ul class="footer-links">
+                    <li><a href="#">الأسئلة الشائعة</a></li>
+                    <li><a href="#">دليل الاستخدام</a></li>
+                    <li><a href="#">اتصل بنا</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-column">
+                <h3>تابعنا</h3>
+                <div style="font-size: 24px; margin-top: 10px;">
+                    <a href="#" style="color: #3b5998; margin-left: 15px;"><i class="fab fa-facebook"></i></a>
+                    <a href="#" style="color: #1da1f2; margin-left: 15px;"><i class="fab fa-twitter"></i></a>
+                    <a href="#" style="color: #0077b5; margin-left: 15px;"><i class="fab fa-linkedin"></i></a>
+                    <a href="#" style="color: #333;"><i class="fab fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            <p>© 2025 RenderRemote. جميع الحقوق محفوظة.</p>
+        </div>
+    </footer>
+    
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 70,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>

