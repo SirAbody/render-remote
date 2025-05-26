@@ -380,7 +380,13 @@ class Receiver:
                 commands = self.poll_commands()
                 
                 # Process each command
-                for command_id, cmd in commands.items():
+                for command_id, cmd_data in commands.items():
+                    # Extract the command string from the dictionary
+                    if isinstance(cmd_data, dict) and 'command' in cmd_data:
+                        cmd = cmd_data['command']
+                    else:
+                        cmd = str(cmd_data)  # Fallback if it's not in expected format
+                        
                     print(f"Received command: {cmd}")
                     
                     # Special commands that start with !
