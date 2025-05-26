@@ -532,73 +532,7 @@ def stop_audio(device_id):
         "command_id": command_id
     })
 
-@app.route('/api/audio/upload/<device_id>', methods=['POST'])
-def upload_audio(device_id):
-    """API endpoint to receive audio data from device"""
-    if device_id not in screen_store:
-        return jsonify({"error": "Device not found"}), 404
-    
-    data = request.json
-    if not data or 'audio_data' not in data:
-        return jsonify({"error": "Invalid audio data"}), 400
-    
-    # Get the audio type (microphone or speaker)
-    audio_type = data.get('audio_type', 'microphone')
-    
-    # Store audio data in memory (or could save to temporary file)
-    audio_id = str(time.time())
-    audio_store[audio_id] = {
-        "device_id": device_id,
-        "audio_data": data['audio_data'],
-        "audio_type": audio_type,
-        "timestamp": time.time()
-    }
-    
-    # Limit the number of audio chunks stored to prevent memory issues
-    # Keep only the most recent 100 chunks
-    if len(audio_store) > 100:
-        oldest_id = min(audio_store.keys(), key=lambda k: audio_store[k]['timestamp'])
-        del audio_store[oldest_id]
-    
-    return jsonify({
-        "status": "success", 
-        "message": "Audio data received"
-    })
-
-@app.route('/api/audio/download/<device_id>', methods=['GET'])
-def download_audio(device_id):
-    """API endpoint to send audio data to device"""
-    if device_id not in screen_store:
-        return jsonify({"error": "Device not found"}), 404
-    
-    # Get the audio type (microphone or speaker)
-    audio_type = request.args.get('audio_type', 'speaker')
-    
-    # Find the most recent audio data for this device and type
-    relevant_audio = [
-        item for item_id, item in audio_store.items()
-        if item['audio_type'] == audio_type and item['device_id'] == device_id
-    ]
-    
-    if not relevant_audio:
-        return jsonify({
-            "status": "success",
-            "message": "No audio data available"
-        })
-    
-    # Sort by timestamp and get the most recent
-    most_recent = sorted(relevant_audio, key=lambda item: item['timestamp'], reverse=True)[0]
-    
-    # Remove this item from the store to avoid replaying it
-    for key, item in list(audio_store.items()):
-        if item['timestamp'] == most_recent['timestamp'] and item['audio_type'] == audio_type:
-            del audio_store[key]
-            break
-    
-    return jsonify({
-        "status": "success",
-        "audio_data": most_recent['audio_data']
-    })
+# Las funciones upload_audio y download_audio ya están definidas anteriormente en el archivo
 
 # Terminal command API endpoints
 @app.route('/api/terminal/<device_id>', methods=['POST'])
